@@ -1,0 +1,8 @@
+# Exclude node modules and local envs from Vercel tracking
+node_modules/
+dist/
+.env
+.env.local
+.git/
+.gemini/
+*.log
