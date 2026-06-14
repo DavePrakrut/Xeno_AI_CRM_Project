@@ -512,6 +512,11 @@ body {
   box-shadow: 0 0 10px var(--accent-glow);
 }
 
+select.form-control option {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
 textarea.form-control {
   resize: vertical;
 }
