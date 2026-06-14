@@ -321,7 +321,7 @@ async function loadDashboardData() {
 
     // Set UI values
     kpiRevenue.innerText = `$${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    kpiCost.innerText = `$${totalCost.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
+    kpiCost.innerText = `$${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     
     if (netProfit < 0) {
       kpiProfit.innerText = `-$${Math.abs(netProfit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -527,7 +527,7 @@ async function showCampaignInsights(campaignId) {
 
     modalCampaignTitle.innerText = `Campaign: ${campaign.name}`;
     modalRevenue.innerText = `$${financials.totalRevenue.toFixed(2)}`;
-    modalCost.innerText = `$${financials.totalCost.toFixed(4)}`;
+    modalCost.innerText = `$${financials.totalCost.toFixed(2)}`;
     modalProfit.innerText = `$${financials.netProfit.toFixed(2)}`;
     modalRoi.innerText = `${financials.roi.toFixed(1)}%`;
 
