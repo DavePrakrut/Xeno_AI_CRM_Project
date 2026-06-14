@@ -1,6 +1,7 @@
-// API Config
 const CRM_API_URL = '/api';
-const CHANNEL_API_URL = `${window.location.protocol}//${window.location.hostname}:3009/api/channel`;
+const CHANNEL_API_URL = window.location.port === '3008'
+  ? `${window.location.protocol}//${window.location.hostname}:3009/api/channel`
+  : `/api/channel`;
 
 // State variables
 let activeCampaignId = null;

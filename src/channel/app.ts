@@ -14,7 +14,7 @@ app.get('/api/channel/logs', (req, res) => {
   res.json({ logs: messageLogs });
 });
 
-app.post('/api/channel/send', (req, res) => {
+app.post('/api/channel/send', async (req, res) => {
   const payload = req.body as ChannelSendRequest;
 
   // Validate request
@@ -36,50 +36,53 @@ app.post('/api/channel/send', (req, res) => {
     timestamp: new Date().toISOString()
   });
 
-  // Respond immediately with 202 Accepted
-  res.status(202).json({
-    status: 'queued',
-    externalMessageId
-  });
+  if (process.env.VERCEL) {
+    // Await simulation before responding on Vercel to prevent environment freezing
+    await simulateLifecycle(payload, externalMessageId);
+    res.status(202).json({
+      status: 'queued',
+      externalMessageId
+    });
+  } else {
+    // Respond immediately with 202 Accepted
+    res.status(202).json({
+      status: 'queued',
+      externalMessageId
+    });
 
-  // Start background simulation
-  simulateLifecycle(payload, externalMessageId);
+    // Start background simulation
+    simulateLifecycle(payload, externalMessageId);
+  }
 });
 
 /**
- * Simulates a realistic delivery funnel for the message asynchronously.
- * Funnel probabilities:
- * - 95% make it to SENT
- * - 90% of SENT make it to DELIVERED (5% FAILED)
- * - 70% of DELIVERED make it to OPENED/READ
- * - 30% of OPENED/READ make it to CLICKED
- * - 15% of CLICKED make it to CONVERTED
+ * Simulates a realistic delivery funnel for the message.
+ * Returns a Promise that resolves when the simulation completes.
  */
-function simulateLifecycle(req: ChannelSendRequest, externalMessageId: string) {
-  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+function simulateLifecycle(req: ChannelSendRequest, externalMessageId: string): Promise<void> {
+  return new Promise<void>(async (resolve) => {
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  // Helper to send webhooks back to CRM Receipt API
-  const triggerCallback = async (status: DeliveryStatus, conversionOrder?: any, error?: string) => {
-    const callbackPayload: ReceiptCallbackPayload = {
-      messageId: externalMessageId, // We callback using the external message ID we generated and returned to CRM
-      status,
-      timestamp: new Date().toISOString(),
-      ...(error && { error }),
-      ...(conversionOrder && { conversionOrder })
+    // Helper to send webhooks back to CRM Receipt API
+    const triggerCallback = async (status: DeliveryStatus, conversionOrder?: any, error?: string) => {
+      const callbackPayload: ReceiptCallbackPayload = {
+        messageId: externalMessageId, // We callback using the external message ID we generated and returned to CRM
+        status,
+        timestamp: new Date().toISOString(),
+        ...(error && { error }),
+        ...(conversionOrder && { conversionOrder })
+      };
+
+      try {
+        console.log(`[Channel Callback] Dispatching ${status} for external ID: ${externalMessageId}`);
+        await axios.post(req.callbackUrl, callbackPayload, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (err: any) {
+        console.error(`[Channel Callback Error] Failed to send webhook to CRM: ${err.message}`);
+      }
     };
 
-    try {
-      console.log(`[Channel Callback] Dispatching ${status} for external ID: ${externalMessageId}`);
-      await axios.post(req.callbackUrl, callbackPayload, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-    } catch (err: any) {
-      console.error(`[Channel Callback Error] Failed to send webhook to CRM: ${err.message}`);
-    }
-  };
-
-  // Run the async workflow
-  (async () => {
     try {
       // 1. Queue -> Sent (150ms delay)
       await delay(150);
@@ -119,9 +122,7 @@ function simulateLifecycle(req: ChannelSendRequest, externalMessageId: string) {
       const isConverted = Math.random() < 0.70; // 70% conversion rate
       if (!isConverted) return;
 
-
       // Determine simulated transaction details to return on conversion
-      // Generate realistic price based on what item might have been marketed (or generic)
       const items = ['Premium Leather Shoes', 'Designer Bag', 'Minimalist Watch', 'Summer Dress', 'Denim Jeans'];
       const itemPurchased = items[Math.floor(Math.random() * items.length)];
       const amount = Math.floor(Math.random() * 120) + 40; // $40 to $160
@@ -133,8 +134,10 @@ function simulateLifecycle(req: ChannelSendRequest, externalMessageId: string) {
 
     } catch (err: any) {
       console.error(`[Channel Simulation Crash] messageId: ${externalMessageId}`, err.message);
+    } finally {
+      resolve();
     }
-  })();
+  });
 }
 
 export default app;

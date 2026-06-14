@@ -259,8 +259,17 @@ router.post('/campaigns/:id/send', async (req: Request, res: Response) => {
       data: { status: 'IN_PROGRESS' }
     });
 
-    const channelUrl = `http://localhost:${process.env.PORT_CHANNEL || 3001}/api/channel/send`;
-    const callbackUrl = `http://localhost:${process.env.PORT_CRM || 3000}/api/receipts/callback`;
+    const host = req.headers.host || `localhost:${process.env.PORT_CRM || 3008}`;
+    const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+    const isSingleService = !!process.env.VERCEL || process.env.SINGLE_SERVICE === 'true';
+
+    const channelUrl = isSingleService 
+      ? `${protocol}://${host}/api/channel/send`
+      : `http://localhost:${process.env.PORT_CHANNEL || 3009}/api/channel/send`;
+      
+    const callbackUrl = isSingleService
+      ? `${protocol}://${host}/api/receipts/callback`
+      : `http://localhost:${process.env.PORT_CRM || 3008}/api/receipts/callback`;
 
     // Process and dispatch messages asynchronously
     const dispatchPromises = matchedCustomers.map(async (customer) => {
