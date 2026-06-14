@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xeno AI-Native CRM Dashboard</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Custom Styling -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- App Shell -->
+  <div class="app-container">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo-icon">X</div>
+        <h2>Xeno <span>CRM</span></h2>
+      </div>
+      <nav class="nav-menu">
+        <a href="#" class="nav-item active" data-tab="dashboard">
+          <i class="fa-solid fa-chart-line"></i> Dashboard
+        </a>
+        <a href="#" class="nav-item" data-tab="campaigns">
+          <i class="fa-solid fa-bullhorn"></i> Campaigns
+        </a>
+        <a href="#" class="nav-item" data-tab="shoppers">
+          <i class="fa-solid fa-users"></i> Shoppers
+        </a>
+        <a href="#" class="nav-item" data-tab="logs">
+          <i class="fa-solid fa-terminal"></i> Activity Logs
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <button id="btn-seed" class="btn btn-secondary btn-full">
+          <i class="fa-solid fa-database"></i> Seed/Reset DB
+        </button>
+        <div class="status-indicator">
+          <span class="pulse-dot"></span> CRM Server Online
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <div class="search-bar">
+          <i class="fa-solid fa-hashtag"></i>
+          <span>AI-Native Target Outreach Platform</span>
+        </div>
+        <div class="user-profile">
+          <div class="api-status">
+            <span class="badge" id="ai-mode-badge"><i class="fa-solid fa-robot"></i> Mock AI Mode</span>
+          </div>
+          <div class="profile-info">
+            <span class="user-name">Brand Marketer</span>
+            <span class="user-role">Administrator</span>
+          </div>
+          <div class="avatar">BM</div>
+        </div>
+      </header>
+
+      <!-- Content Views -->
+      <div class="view-container">
+
+        <!-- DASHBOARD VIEW -->
+        <section id="view-dashboard" class="content-view active">
+          <div class="welcome-header">
+            <h1>Campaign Operations & ROI</h1>
+            <p>Monitor your simulated shopper conversion loops and financial returns in real time.</p>
+          </div>
+
+          <!-- KPI Cards -->
+          <div class="kpi-grid">
+            <div class="kpi-card hover-lift">
+              <div class="kpi-header">
+                <span class="kpi-title">Attributed Revenue</span>
+                <span class="kpi-icon color-green"><i class="fa-solid fa-dollar-sign"></i></span>
+              </div>
+              <div class="kpi-value" id="kpi-revenue">$0.00</div>
+              <div class="kpi-subtitle">From customer conversions</div>
+            </div>
+
+            <div class="kpi-card hover-lift">
+              <div class="kpi-header">
+                <span class="kpi-title">Outreach Cost</span>
+                <span class="kpi-icon color-blue"><i class="fa-solid fa-file-invoice-dollar"></i></span>
+              </div>
+              <div class="kpi-value" id="kpi-cost">$0.0000</div>
+              <div class="kpi-subtitle">Sum of message channel costs</div>
+            </div>
+
+            <div class="kpi-card hover-lift">
+              <div class="kpi-header">
+                <span class="kpi-title">Net Profit</span>
+                <span class="kpi-icon color-purple"><i class="fa-solid fa-piggy-bank"></i></span>
+              </div>
+              <div class="kpi-value" id="kpi-profit">$0.00</div>
+              <div class="kpi-subtitle">Revenue minus costs</div>
+            </div>
+
+            <div class="kpi-card hover-lift">
+              <div class="kpi-header">
+                <span class="kpi-title">Average Campaign ROI</span>
+                <span class="kpi-icon color-orange"><i class="fa-solid fa-percent"></i></span>
+              </div>
+              <div class="kpi-value" id="kpi-roi">0%</div>
+              <div class="kpi-subtitle">Outreach profitability rate</div>
+            </div>
+          </div>
+
+          <!-- Main Layout Grid -->
+          <div class="dashboard-grid">
+            
+            <!-- Left: Campaign Assistant -->
+            <div class="grid-card campaign-creator-section">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-wand-magic-sparkles text-gradient"></i> AI Campaign Assistant</h3>
+                <p>Describe your marketing goal in natural language to target specific shopper segments.</p>
+              </div>
+              
+              <div class="prompt-input-wrapper">
+                <label for="campaign-prompt">What is your outreach goal?</label>
+                <textarea id="campaign-prompt" placeholder="e.g., Win back customers who haven't bought anything in 60 days, or target Gold tier members who purchased Running Shoes..."></textarea>
+                <div class="prompt-suggestions">
+                  <span class="suggestion-tag">Win back inactive shoppers (60 days)</span>
+                  <span class="suggestion-tag">Promote VIPs in Gold tier</span>
+                  <span class="suggestion-tag">Target Smart Watch buyers</span>
+                </div>
+                <button id="btn-parse-goal" class="btn btn-primary btn-full mt-3">
+                  <i class="fa-solid fa-brain"></i> Parse Campaign Goal
+                </button>
+              </div>
+
+              <!-- AI Parsing Results (Hidden until generated) -->
+              <div id="ai-parsed-results" class="ai-results-card hidden">
+                <div class="divider"></div>
+                <h4>Parsed Campaign Strategy</h4>
+                
+                <div class="form-group">
+                  <label>Generated Campaign Name</label>
+                  <input type="text" id="parsed-name" class="form-control">
+                </div>
+
+                <div class="form-group">
+                  <label>Audience Segmentation Rules</label>
+                  <div id="parsed-rules-badge-container" class="badge-container"></div>
+                </div>
+
+                <div class="form-group">
+                  <label>Channel Selection</label>
+                  <select id="campaign-channel" class="form-control">
+                    <option value="WhatsApp">WhatsApp (Cost: $0.08 / message)</option>
+                    <option value="SMS">SMS (Cost: $0.02 / message)</option>
+                    <option value="RCS">RCS (Cost: $0.05 / message)</option>
+                    <option value="Email">Email (Cost: $0.002 / message)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>AI-Generated Message Template</label>
+                  <textarea id="parsed-template" class="form-control" rows="3"></textarea>
+                  <small class="text-muted">Placeholders like {{name}} and {{lastItemPurchased}} will be customized automatically.</small>
+                </div>
+
+                <div class="action-buttons mt-4">
+                  <button id="btn-cancel-campaign" class="btn btn-secondary">Discard</button>
+                  <button id="btn-launch-campaign" class="btn btn-accent">
+                    <i class="fa-solid fa-paper-plane"></i> Launch Campaign
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Real-time Funnel Visualizer -->
+            <div class="grid-card funnel-visualizer-section">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-circle-play text-accent"></i> Real-time Delivery Funnel</h3>
+                <p>Watch as messages progress through delivery and conversion statuses in real-time callbacks.</p>
+              </div>
+
+              <div id="funnel-placeholder" class="funnel-placeholder-container">
+                <i class="fa-solid fa-chart-bar-stacked"></i>
+                <p>Launch a campaign to witness real-time dispatch and callback progression.</p>
+              </div>
+
+              <div id="funnel-active-container" class="funnel-active-content hidden">
+                <div class="active-campaign-info">
+                  <h4 id="active-camp-name">60-Day Re-engagement</h4>
+                  <span class="badge badge-progress" id="active-camp-status">IN_PROGRESS</span>
+                </div>
+                
+                <!-- Custom Funnel Bars -->
+                <div class="custom-funnel">
+                  
+                  <div class="funnel-row">
+                    <div class="funnel-label">Sent</div>
+                    <div class="funnel-bar-container">
+                      <div class="funnel-bar bg-sent" id="bar-sent" style="width: 0%;"></div>
+                    </div>
+                    <div class="funnel-metric" id="metric-sent">0</div>
+                  </div>
+
+                  <div class="funnel-row">
+                    <div class="funnel-label">Delivered</div>
+                    <div class="funnel-bar-container">
+                      <div class="funnel-bar bg-delivered" id="bar-delivered" style="width: 0%;"></div>
+                    </div>
+                    <div class="funnel-metric" id="metric-delivered">0 <span class="rate-pct" id="rate-delivered">(0%)</span></div>
+                  </div>
+
+                  <div class="funnel-row">
+                    <div class="funnel-label">Opened / Read</div>
+                    <div class="funnel-bar-container">
+                      <div class="funnel-bar bg-opened" id="bar-opened" style="width: 0%;"></div>
+                    </div>
+                    <div class="funnel-metric" id="metric-opened">0 <span class="rate-pct" id="rate-opened">(0%)</span></div>
+                  </div>
+
+                  <div class="funnel-row">
+                    <div class="funnel-label">Clicked</div>
+                    <div class="funnel-bar-container">
+                      <div class="funnel-bar bg-clicked" id="bar-clicked" style="width: 0%;"></div>
+                    </div>
+                    <div class="funnel-metric" id="metric-clicked">0 <span class="rate-pct" id="rate-clicked">(0%)</span></div>
+                  </div>
+
+                  <div class="funnel-row">
+                    <div class="funnel-label">Converted</div>
+                    <div class="funnel-bar-container">
+                      <div class="funnel-bar bg-converted" id="bar-converted" style="width: 0%;"></div>
+                    </div>
+                    <div class="funnel-metric text-accent" id="metric-converted">0 <span class="rate-pct" id="rate-converted">(0%)</span></div>
+                  </div>
+
+                  <div class="funnel-row" id="row-failed-container">
+                    <div class="funnel-label">Failed</div>
+                    <div class="funnel-bar-container">
+                      <div class="funnel-bar bg-failed" id="bar-failed" style="width: 0%;"></div>
+                    </div>
+                    <div class="funnel-metric text-red" id="metric-failed">0</div>
+                  </div>
+
+                </div>
+
+                <!-- Attributed Conversions Feed -->
+                <div class="conversions-feed mt-4">
+                  <h5>Attributed Purchases</h5>
+                  <div class="feed-list" id="active-conversions-list">
+                    <div class="empty-feed-item">Awaiting customer purchases...</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Bottom: Recent Campaigns -->
+          <div class="grid-card mt-4">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-clock-rotate-left"></i> Campaign Logs & Performance</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Campaign ID</th>
+                    <th>Name / NL Prompt</th>
+                    <th>Status</th>
+                    <th>Audience Size</th>
+                    <th>Conversions</th>
+                    <th>Revenue</th>
+                    <th>ROI</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-campaigns-tbody">
+                  <tr>
+                    <td colspan="8" class="text-center">No campaigns found. Use the AI Assistant to create one.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- CAMPAIGNS VIEW -->
+        <section id="view-campaigns" class="content-view">
+          <div class="welcome-header">
+            <h1>Campaign History</h1>
+            <p>View the lifecycle details, ROI, and metrics for all created campaigns.</p>
+          </div>
+          <div class="grid-card">
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Campaign Name</th>
+                    <th>Status</th>
+                    <th>Goal Code</th>
+                    <th>Prompt</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="campaign-history-tbody">
+                  <tr>
+                    <td colspan="7" class="text-center">No campaigns loaded.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- SHOPPERS VIEW -->
+        <section id="view-shoppers" class="content-view">
+          <div class="welcome-header">
+            <h1>Shopper Directory</h1>
+            <p>View the customer database, loyalty tiers, order history, and lifetime value calculations.</p>
+          </div>
+          <div class="grid-card">
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Contact Info</th>
+                    <th>Loyalty Tier</th>
+                    <th>Location</th>
+                    <th>Orders</th>
+                    <th>Lifetime Value</th>
+                  </tr>
+                </thead>
+                <tbody id="shoppers-tbody">
+                  <tr>
+                    <td colspan="7" class="text-center">No shoppers in database. Use "Seed DB" to ingest sample customer data.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ACTIVITY LOGS VIEW -->
+        <section id="view-logs" class="content-view">
+          <div class="welcome-header flex-header">
+            <div>
+              <h1>System Activity & Webhook Feed</h1>
+              <p>Observe background event execution, including channel dispatches and receipt callbacks.</p>
+            </div>
+            <button id="btn-refresh-logs" class="btn btn-secondary">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh Logs
+            </button>
+          </div>
+          <div class="grid-card">
+            <div class="log-console-container">
+              <div class="console-header">
+                <span class="console-title"><i class="fa-solid fa-rectangle-list"></i> Channel Outbox Events</span>
+                <span class="console-status">LIVE STREAM</span>
+              </div>
+              <div id="channel-outbox-console" class="console-body">
+                <div class="console-line text-muted">Listening for new channel message dispatches...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Campaign Insights Modal -->
+  <div class="modal-backdrop hidden" id="insights-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-campaign-title">Campaign Insights</h3>
+        <button class="modal-close" id="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        
+        <div class="modal-stats-row">
+          <div class="modal-stat-box">
+            <span class="stat-lbl">Revenue</span>
+            <span class="stat-val text-green" id="modal-revenue">$0.00</span>
+          </div>
+          <div class="modal-stat-box">
+            <span class="stat-lbl">Campaign Cost</span>
+            <span class="stat-val text-blue" id="modal-cost">$0.00</span>
+          </div>
+          <div class="modal-stat-box">
+            <span class="stat-lbl">Net Profit</span>
+            <span class="stat-val text-purple" id="modal-profit">$0.00</span>
+          </div>
+          <div class="modal-stat-box">
+            <span class="stat-lbl">ROI</span>
+            <span class="stat-val text-orange" id="modal-roi">0%</span>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="modal-grid">
+          <div>
+            <h4>Delivery Funnel</h4>
+            <div class="funnel-box">
+              <div class="funnel-metric-line">
+                <span>Total Dispatched:</span> <strong id="modal-funnel-sent">0</strong>
+              </div>
+              <div class="funnel-metric-line">
+                <span>Delivered:</span> <strong id="modal-funnel-delivered">0</strong> <span id="modal-rate-delivered" class="modal-pct">(0%)</span>
+              </div>
+              <div class="funnel-metric-line">
+                <span>Opened:</span> <strong id="modal-funnel-opened">0</strong> <span id="modal-rate-opened" class="modal-pct">(0%)</span>
+              </div>
+              <div class="funnel-metric-line">
+                <span>Clicked:</span> <strong id="modal-funnel-clicked">0</strong> <span id="modal-rate-clicked" class="modal-pct">(0%)</span>
+              </div>
+              <div class="funnel-metric-line">
+                <span>Converted:</span> <strong id="modal-funnel-converted">0</strong> <span id="modal-rate-converted" class="modal-pct">(0%)</span>
+              </div>
+              <div class="funnel-metric-line">
+                <span>Failed:</span> <strong id="modal-funnel-failed" class="text-red">0</strong>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h4>Attributed Sales</h4>
+            <div class="modal-sales-list" id="modal-conversions-feed">
+              <!-- list of orders -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
