@@ -12,8 +12,16 @@
       "dest": "src/crm/app.ts"
     },
     {
+      "src": "/style.css",
+      "dest": "/public/style.css"
+    },
+    {
+      "src": "/app.js",
+      "dest": "/public/app.js"
+    },
+    {
       "src": "/(.*)",
-      "dest": "public/$1"
+      "dest": "/public/index.html"
     }
   ]
 }
