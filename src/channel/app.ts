@@ -86,7 +86,7 @@ function simulateLifecycle(req: ChannelSendRequest, externalMessageId: string): 
     try {
       // 1. Queue -> Sent (150ms delay)
       await delay(150);
-      const isSent = Math.random() < 1.0; // 100% sent for testing
+      const isSent = Math.random() < 0.98; // 98% sent rate
       if (!isSent) {
         await triggerCallback('FAILED', undefined, 'Carrier queue timeout');
         return;
@@ -95,7 +95,7 @@ function simulateLifecycle(req: ChannelSendRequest, externalMessageId: string): 
 
       // 2. Sent -> Delivered (200ms delay)
       await delay(200);
-      const isDelivered = Math.random() < 0.98; // 2% fail at delivery
+      const isDelivered = Math.random() < 0.95; // 95% delivery rate
       if (!isDelivered) {
         await triggerCallback('FAILED', undefined, 'Undeliverable number / handset offline');
         return;
@@ -104,22 +104,36 @@ function simulateLifecycle(req: ChannelSendRequest, externalMessageId: string): 
 
       // 3. Delivered -> Opened/Read (300ms delay)
       await delay(300);
-      const isOpened = Math.random() < 0.95; // 95% open rate
+      // Realistic open rates: WhatsApp/RCS = 85%, SMS = 65%, Email = 32%
+      let openProb = 0.85;
+      if (req.channel === 'SMS') openProb = 0.65;
+      if (req.channel === 'Email') openProb = 0.32;
+
+      const isOpened = Math.random() < openProb;
       if (!isOpened) return;
 
-      // For WhatsApp or RCS, let's send READ, otherwise OPENED
       const openStatus: DeliveryStatus = (req.channel === 'WhatsApp' || req.channel === 'RCS') ? 'READ' : 'OPENED';
       await triggerCallback(openStatus);
 
       // 4. Opened/Read -> Clicked (400ms delay)
       await delay(400);
-      const isClicked = Math.random() < 0.80; // 80% CTR
+      // Realistic Click-Through Rates (CTR): WhatsApp/RCS = 35%, SMS = 12%, Email = 6%
+      let clickProb = 0.35;
+      if (req.channel === 'SMS') clickProb = 0.12;
+      if (req.channel === 'Email') clickProb = 0.06;
+
+      const isClicked = Math.random() < clickProb;
       if (!isClicked) return;
       await triggerCallback('CLICKED');
 
       // 5. Clicked -> Converted (500ms delay)
       await delay(500);
-      const isConverted = Math.random() < 0.70; // 70% conversion rate
+      // Realistic conversion rates of clicked users: WhatsApp/RCS = 22%, SMS = 15%, Email = 10%
+      let convertProb = 0.22;
+      if (req.channel === 'SMS') convertProb = 0.15;
+      if (req.channel === 'Email') convertProb = 0.10;
+
+      const isConverted = Math.random() < convertProb;
       if (!isConverted) return;
 
       // Determine simulated transaction details to return on conversion

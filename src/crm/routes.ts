@@ -7,14 +7,14 @@ import axios from 'axios';
 const router = Router();
 const aiService = new AIService();
 
-// Get channel cost per message
+// Get channel cost per message (realistic system-wide cost including carrier fees and platform overhead)
 function getChannelCost(channel: string): number {
   switch (channel) {
-    case 'WhatsApp': return 0.08;
-    case 'SMS': return 0.02;
-    case 'RCS': return 0.05;
-    case 'Email': return 0.002;
-    default: return 0.01;
+    case 'WhatsApp': return 1.50;
+    case 'SMS': return 0.50;
+    case 'RCS': return 1.00;
+    case 'Email': return 0.10;
+    default: return 0.25;
   }
 }
 
