@@ -1,0 +1,16 @@
+id,name,email,phone,tier,location,age
+1,Sarah Jenkins,sarah.j@example.com,+15550201,Gold,London,32
+2,Marcus Aurelius,marcus@example.com,+15550202,Platinum,Rome,45
+3,Chloe Henderson,chloe.h@example.com,+15550203,Silver,Paris,26
+4,David Kim,david.k@example.com,+15550204,Bronze,Seoul,29
+5,Aisha Rahman,aisha.r@example.com,+15550205,Gold,Dubai,31
+6,Liam O'Connor,liam.o@example.com,+15550206,Silver,Dublin,35
+7,Emma Watson,emma.w@example.com,+15550207,Platinum,New York,28
+8,Carlos Santana,carlos.s@example.com,+15550208,Bronze,Madrid,50
+9,Yuki Tanaka,yuki.t@example.com,+15550209,Gold,Tokyo,24
+10,Olivia Martinez,olivia.m@example.com,+15550210,Bronze,Los Angeles,33
+11,Alexander Carter,alex.c@example.com,+15550211,Silver,Toronto,40
+12,Fiona Gallagher,fiona@example.com,+15550106,Bronze,Chicago,23
+13,George Clooney,george@example.com,+15550107,Platinum,Seattle,50
+14,Hannah Abbott,hannah@example.com,+15550108,Silver,Austin,31
+15,Alice Johnson,alice@example.com,+15550101,Gold,New York,29

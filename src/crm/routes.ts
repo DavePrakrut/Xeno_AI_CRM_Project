@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { prisma } from '../database/prisma';
+import * as csvDb from '../database/csvDb';
 import { AIService } from '../services/ai.service';
 import { ChannelType, DeliveryStatus, ReceiptCallbackPayload } from '../types';
 import axios from 'axios';
@@ -27,10 +27,7 @@ router.post('/data/ingest', async (req: Request, res: Response) => {
     console.log('[CRM] Ingesting seed data...');
     
     // Clear existing data to be idempotent
-    await prisma.communicationLog.deleteMany({});
-    await prisma.order.deleteMany({});
-    await prisma.campaign.deleteMany({});
-    await prisma.customer.deleteMany({});
+    await csvDb.clearAll();
 
     const now = new Date();
     const daysAgo = (num: number) => new Date(now.getTime() - num * 24 * 60 * 60 * 1000);
@@ -209,13 +206,26 @@ router.post('/data/ingest', async (req: Request, res: Response) => {
     ];
 
     for (const cust of customersData) {
-      await prisma.customer.create({
-        data: cust
+      const createdCustomer = await csvDb.createCustomer({
+        name: cust.name,
+        email: cust.email,
+        phone: cust.phone,
+        metadata: cust.metadata
       });
+      if (cust.orders && cust.orders.create) {
+        for (const order of cust.orders.create) {
+          await csvDb.createOrder({
+            customerId: createdCustomer.id,
+            amount: order.amount,
+            itemPurchased: order.itemPurchased,
+            purchasedAt: order.purchasedAt
+          });
+        }
+      }
     }
 
-    const customerCount = await prisma.customer.count();
-    const orderCount = await prisma.order.count();
+    const customerCount = await csvDb.countCustomers();
+    const orderCount = await csvDb.countOrders();
 
     console.log(`[CRM] Seeding complete. Ingested ${customerCount} customers and ${orderCount} orders.`);
     res.status(201).json({
@@ -245,13 +255,11 @@ router.post('/campaigns', async (req: Request, res: Response) => {
     const parsedCampaign = await aiService.parseCampaignGoal(aiPrompt);
     console.log(`[CRM AI Result] Campaign Name: "${parsedCampaign.name}"`);
 
-    const campaign = await prisma.campaign.create({
-      data: {
-        name: parsedCampaign.name,
-        aiPrompt: aiPrompt,
-        goal: parsedCampaign.goal,
-        segmentDefinition: JSON.stringify(parsedCampaign.segmentDefinition)
-      }
+    const campaign = await csvDb.createCampaign({
+      name: parsedCampaign.name,
+      aiPrompt: aiPrompt,
+      goal: parsedCampaign.goal,
+      segmentDefinition: JSON.stringify(parsedCampaign.segmentDefinition)
     });
 
     res.status(201).json({
@@ -275,7 +283,7 @@ router.post('/campaigns/:id/send', async (req: Request, res: Response) => {
 
   try {
     const campaignId = parseInt(id, 10);
-    const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
+    const campaign = await csvDb.findCampaignById(campaignId);
 
     if (!campaign) {
       return res.status(404).json({ error: 'Campaign not found' });
@@ -285,7 +293,7 @@ router.post('/campaigns/:id/send', async (req: Request, res: Response) => {
     const conditions = segmentDef.conditions || [];
 
     // Fetch all customers & orders to filter matching target segment
-    const customers = await prisma.customer.findMany({ include: { orders: { orderBy: { purchasedAt: 'desc' } } } });
+    const customers = await csvDb.findCustomersWithOrders();
     const matchedCustomers: typeof customers = [];
 
     const now = new Date();
@@ -337,10 +345,7 @@ router.post('/campaigns/:id/send', async (req: Request, res: Response) => {
     const template = suggestedCopyTemplate || "Hi {{name}}! Check out our new products.";
     
     // Update campaign status
-    await prisma.campaign.update({
-      where: { id: campaignId },
-      data: { status: 'IN_PROGRESS' }
-    });
+    await csvDb.updateCampaignStatus(campaignId, 'IN_PROGRESS');
 
     const host = req.headers.host || `localhost:${process.env.PORT_CRM || 3008}`;
     const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
@@ -371,15 +376,13 @@ router.post('/campaigns/:id/send', async (req: Request, res: Response) => {
       );
 
       // 2. Create local CommunicationLog as PENDING
-      const log = await prisma.communicationLog.create({
-        data: {
-          recipient: channel === 'Email' ? customer.email : customer.phone,
-          messageBody: personalizedBody,
-          channel: channel as ChannelType,
-          status: 'PENDING',
-          campaignId: campaign.id,
-          customerId: customer.id
-        }
+      const log = await csvDb.createCommunicationLog({
+        recipient: channel === 'Email' ? customer.email : customer.phone,
+        messageBody: personalizedBody,
+        channel: channel as ChannelType,
+        status: 'PENDING',
+        campaignId: campaign.id,
+        customerId: customer.id
       });
 
       // 3. Dispatch to Channel Service
@@ -394,19 +397,13 @@ router.post('/campaigns/:id/send', async (req: Request, res: Response) => {
 
         // 4. Update with external Message ID & set to SENT
         const { externalMessageId } = response.data;
-        await prisma.communicationLog.update({
-          where: { id: log.id },
-          data: {
-            externalMessageId: externalMessageId,
-            status: 'SENT'
-          }
+        await csvDb.updateCommunicationLog(log.id, {
+          externalMessageId: externalMessageId,
+          status: 'SENT'
         });
       } catch (err: any) {
         console.error(`[CRM Send Error] Failed to transmit message log ID ${log.id} to Channel:`, err.message);
-        await prisma.communicationLog.update({
-          where: { id: log.id },
-          data: { status: 'FAILED' }
-        });
+        await csvDb.updateCommunicationLog(log.id, { status: 'FAILED' });
       }
     });
 
@@ -435,9 +432,7 @@ router.post('/receipts/callback', async (req: Request, res: Response) => {
   }
 
   try {
-    const log = await prisma.communicationLog.findUnique({
-      where: { externalMessageId: payload.messageId }
-    });
+    const log = await csvDb.findCommunicationLogByExternalId(payload.messageId);
 
     if (!log) {
       console.warn(`[CRM Callback Warning] Callback received for unknown external message ID: ${payload.messageId}`);
@@ -452,39 +447,25 @@ router.post('/receipts/callback', async (req: Request, res: Response) => {
       
       console.log(`[CRM Attribution] Attributing purchase from Customer ID ${log.customerId}: $${amount} for ${itemPurchased}`);
       
-      await prisma.order.create({
-        data: {
-          customerId: log.customerId,
-          amount,
-          itemPurchased,
-          purchasedAt: new Date(payload.timestamp)
-        }
+      await csvDb.createOrder({
+        customerId: log.customerId,
+        amount,
+        itemPurchased,
+        purchasedAt: new Date(payload.timestamp)
       });
     }
 
     // Update log status
-    await prisma.communicationLog.update({
-      where: { id: log.id },
-      data: {
-        status: payload.status,
-        updatedAt: new Date(payload.timestamp)
-      }
+    await csvDb.updateCommunicationLog(log.id, {
+      status: payload.status,
+      updatedAt: new Date(payload.timestamp)
     });
 
-    // Check if campaign is fully completed (all logs are in terminal states: FAILED, CLICKED, CONVERTED, or OPENED/READ if they didn't proceed)
-    // To keep it simple, if no logs are PENDING or SENT, we can mark campaign as COMPLETED
-    const remainingActive = await prisma.communicationLog.count({
-      where: {
-        campaignId: log.campaignId,
-        status: { in: ['PENDING', 'SENT'] }
-      }
-    });
+    // Check if campaign is fully completed
+    const remainingActive = await csvDb.countActiveLogsForCampaign(log.campaignId);
 
     if (remainingActive === 0) {
-      await prisma.campaign.update({
-        where: { id: log.campaignId },
-        data: { status: 'COMPLETED' }
-      });
+      await csvDb.updateCampaignStatus(log.campaignId, 'COMPLETED');
       console.log(`[CRM Campaign] Campaign ID ${log.campaignId} marked as COMPLETED.`);
     }
 
@@ -504,10 +485,7 @@ router.get('/campaigns/:id/insights', async (req: Request, res: Response) => {
 
   try {
     const campaignId = parseInt(id, 10);
-    const campaign = await prisma.campaign.findUnique({
-      where: { id: campaignId },
-      include: { communicationLogs: true }
-    });
+    const campaign = await csvDb.findCampaignWithLogs(campaignId);
 
     if (!campaign) {
       return res.status(404).json({ error: 'Campaign not found' });
@@ -531,37 +509,22 @@ router.get('/campaigns/:id/insights', async (req: Request, res: Response) => {
       }
     });
 
-    // Sum conversion values directly attributed via CONVERTED callback logs
-    // In our callback, we attribute conversions by adding a new order. 
-    // To calculate ROI precisely, we look at the count of conversions * the average conversion value,
-    // or sum the conversion order amounts directly. Since the channel service callback sends the amount, 
-    // we can sum the customer's orders created at the time of conversion.
-    // For simplicity and exact accuracy, we can look up the orders that were created around the same timestamp as the conversion log,
-    // or calculate it using our logs.
-    // Let's query orders for matched customers created at/after the conversion timestamp.
-    // A clean approach: We can look at conversion logs, and since we know which orders were created during conversions,
-    // we can fetch the orders created by converted customers at the exact conversion log updatedAt timestamp,
-    // or we can aggregate the revenue directly.
-    // Let's do a direct calculation: for each converted log, find the order of the customer purchased within a 5-second window of log.updatedAt.
     const conversionLogs = logs.filter(l => l.status === 'CONVERTED');
     let totalRevenue = 0;
     const conversionDetails: any[] = [];
 
     for (const log of conversionLogs) {
       // Find the order that was created
-      const order = await prisma.order.findFirst({
-        where: {
-          customerId: log.customerId,
-          purchasedAt: {
-            gte: new Date(log.updatedAt.getTime() - 5000), // 5s buffer
-            lte: new Date(log.updatedAt.getTime() + 5000)
-          }
-        }
-      });
+      const order = await csvDb.findFirstOrder(
+        log.customerId,
+        new Date(log.updatedAt.getTime() - 5000), // 5s buffer
+        new Date(log.updatedAt.getTime() + 5000)
+      );
       if (order) {
         totalRevenue += order.amount;
+        const customer = await csvDb.findCustomerById(log.customerId);
         conversionDetails.push({
-          customerName: await prisma.customer.findUnique({ where: { id: log.customerId } }).then(c => c?.name),
+          customerName: customer ? customer.name : 'Unknown',
           itemPurchased: order.itemPurchased,
           amount: order.amount,
           timestamp: order.purchasedAt
@@ -621,10 +584,7 @@ router.get('/campaigns/:id/insights', async (req: Request, res: Response) => {
  */
 router.get('/customers', async (req: Request, res: Response) => {
   try {
-    const customers = await prisma.customer.findMany({
-      include: {
-        orders: true
-      },
+    const customers = await csvDb.findCustomersWithOrders({
       orderBy: {
         name: 'asc'
       }
@@ -661,7 +621,7 @@ router.get('/customers', async (req: Request, res: Response) => {
  */
 router.get('/campaigns', async (req: Request, res: Response) => {
   try {
-    const campaigns = await prisma.campaign.findMany({
+    const campaigns = await csvDb.findCampaigns({
       orderBy: {
         createdAt: 'desc'
       }

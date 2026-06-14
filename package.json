@@ -4,7 +4,7 @@
   "description": "AI-Native Mini CRM and Channel Service Callback Loop",
   "main": "dist/crm/server.js",
   "scripts": {
-    "build": "prisma generate && prisma db push --accept-data-loss && tsc",
+    "build": "tsc",
     "crm:dev": "ts-node src/crm/server.ts",
     "channel:dev": "ts-node src/channel/server.ts",
     "dev": "concurrently \"npm run crm:dev\" \"npm run channel:dev\"",

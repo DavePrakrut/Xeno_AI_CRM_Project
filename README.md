@@ -25,7 +25,7 @@ Welcome to the **Xeno AI-Native Mini CRM**! This is a complete, production-ready
 ## 🛠️ Tech Stack
 
 - **Backend:** Node.js, Express, TypeScript, ts-node
-- **Database:** SQLite (persisted locally), Prisma ORM
+- **Database:** Serverless-native CSV files (active reading/writing to temporary directory `/tmp` on serverless and local `tmp/` folder, pre-seeded from git)
 - **AI Integration:** `@google/generative-ai` (Gemini 1.5 Flash)
 - **Frontend:** Vanilla HTML5, CSS3 (Custom Glassmorphic design variables, responsive grid systems, keyframe micro-animations), Vanilla JavaScript ES6
 - **Task Runner:** concurrently (to launch services together)
@@ -40,7 +40,7 @@ The project is structured as a decoupled **Two-Service Architecture**:
 graph TD
     A[Brand Marketer / UI] -->|1. Submit Goal Prompt| B(CRM Service: 3008)
     B -->|2. Parse Segment & Template| AI[Gemini 1.5 / Mock AI]
-    B -->|3. Query Target Customers| DB[(Prisma SQLite)]
+    B -->|3. Query Target Customers| DB[(CSV Files)]
     
     A -->|4. Launch Campaign| B
     B -->|5. Personalize Message & Queue| B
@@ -63,18 +63,18 @@ graph TD
 
 ## ⚖️ Scalability, Trade-offs & Production Design
 
-For the scope of this assessment, SQLite and in-memory states are utilized. To scale this system to **millions of messages and real-time events**, the following tradeoffs are noted:
+For the scope of this assessment, a lightweight CSV database engine and in-memory states are utilized. This completely avoids SQLite file locks and compilation restrictions on serverless environments. To scale this system to **millions of messages and real-time events**, the following tradeoffs are noted:
 
-### 1. Database Layer (SQLite vs. PostgreSQL/Redshift)
-*   **Current:** SQLite is excellent for portability and local persistence, but is limited to a single concurrent write lock.
-*   **Scale:** In production, we would replace SQLite with **PostgreSQL** (with read replicas for analytics) and ingest high-volume transactions into data warehouses like **Redshift** or **BigQuery** for long-term ROI attribution.
+### 1. Database Layer (CSV / SQLite vs. PostgreSQL/Redshift)
+*   **Current:** CSV files are excellent for portability and zero-config deployment.
+*   **Scale:** In production, we would replace this with **PostgreSQL** (with read replicas for analytics) and ingest high-volume transactions into data warehouses like **Redshift** or **BigQuery** for long-term ROI attribution.
 
 ### 2. Message Dispatch Queueing (Direct HTTP vs. Message Broker)
 *   **Current:** The CRM maps dispatches via HTTP requests using `Promise.all()`. For hundreds of shoppers this is fine, but for millions, it would crash or timeout.
 *   **Scale:** We would introduce a distributed task queue like **BullMQ (Redis-backed)** or a message broker like **RabbitMQ** / **Apache Kafka**. The CRM pushes dispatch tasks to the broker, and separate worker microservices consume tasks and throttles dispatches according to channel rate limits.
 
 ### 3. Webhook Delivery & Ingestion (Direct Express vs. Stream Ingestion)
-*   **Current:** Receipts hit Express directly, updating SQLite rows immediately. High volumes would block the event loop.
+*   **Current:** Receipts hit Express directly, updating active data rows immediately. High volumes would block the event loop.
 *   **Scale:** Webhooks would hit an API Gateway (e.g. AWS API Gateway / Cloudflare Workers) which instantly dumps them to a stream partition (e.g., Kafka / AWS Kinesis). Consumer workers ingest these in batches, updating database records asynchronously, preventing web server bottlenecks.
 
 ---
@@ -95,22 +95,11 @@ Copy `.env` file or verify that the ports are configured:
 ```env
 PORT_CRM=3008
 PORT_CHANNEL=3009
-DATABASE_URL="file:./dev.db"
 GEMINI_API_KEY="" # Add your Gemini API Key here to enable live AI parsing
 ```
 
-### 3. Generate Prisma Database Client
-```bash
-npm run prisma:generate
-```
-
-### 4. Setup / Push Schema to SQLite
-```bash
-npm run prisma:db
-```
-
-### 5. Launch the Development Servers
-Start both the CRM Server and the Channel Simulator concurrently:
+### 3. Launch the Development Servers
+Start both the CRM Server and the Channel Simulator concurrently (the CSV database files will be initialized automatically in a local `tmp/` folder):
 ```bash
 npm run dev
 ```
@@ -118,7 +107,7 @@ Once started:
 *   The **CRM and Frontend Console** is available at: **`http://localhost:3008`**
 *   The **Channel Service API** is available at: **`http://localhost:3009`**
 
-### 6. Run the End-to-End Test Suite
+### 4. Run the End-to-End Test Suite
 To execute the automated end-to-end integration test through the console:
 ```bash
 npm run test-flow
