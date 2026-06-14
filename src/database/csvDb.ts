@@ -197,13 +197,16 @@ async function readOrders(): Promise<Order[]> {
   const content = fs.readFileSync(ORDERS_FILE, 'utf-8');
   const rows = parseCSV(content);
   if (rows.length <= 1) return [];
-  return rows.slice(1).map(row => ({
-    id: parseInt(row[0], 10),
-    customerId: parseInt(row[1], 10),
-    amount: parseFloat(row[2]),
-    itemPurchased: row[3],
-    purchasedAt: new Date(row[4])
-  }));
+  const now = Date.now();
+  return rows.slice(1)
+    .map(row => ({
+      id: parseInt(row[0], 10),
+      customerId: parseInt(row[1], 10),
+      amount: parseFloat(row[2]),
+      itemPurchased: row[3],
+      purchasedAt: new Date(row[4])
+    }))
+    .filter(o => o.purchasedAt.getTime() <= now);
 }
 
 async function writeOrders(orders: Order[]): Promise<void> {
@@ -227,15 +230,31 @@ async function readCampaigns(): Promise<Campaign[]> {
   const content = fs.readFileSync(CAMPAIGNS_FILE, 'utf-8');
   const rows = parseCSV(content);
   if (rows.length <= 1) return [];
-  return rows.slice(1).map(row => ({
-    id: parseInt(row[0], 10),
-    name: row[1],
-    aiPrompt: row[2],
-    goal: row[3],
-    segmentDefinition: row[4],
-    status: row[5],
-    createdAt: new Date(row[6])
-  }));
+  const now = Date.now();
+  return rows.slice(1).map(row => {
+    const id = parseInt(row[0], 10);
+    const name = row[1];
+    const aiPrompt = row[2];
+    const goal = row[3];
+    const segmentDefinition = row[4];
+    const savedStatus = row[5];
+    const createdAt = new Date(row[6]);
+
+    let status = savedStatus;
+    if (savedStatus === 'IN_PROGRESS' && (now - createdAt.getTime() >= 1550)) {
+      status = 'COMPLETED';
+    }
+
+    return {
+      id,
+      name,
+      aiPrompt,
+      goal,
+      segmentDefinition,
+      status,
+      createdAt
+    };
+  });
 }
 
 async function writeCampaigns(campaigns: Campaign[]): Promise<void> {
@@ -261,18 +280,54 @@ async function readLogs(): Promise<CommunicationLog[]> {
   const content = fs.readFileSync(LOGS_FILE, 'utf-8');
   const rows = parseCSV(content);
   if (rows.length <= 1) return [];
-  return rows.slice(1).map(row => ({
-    id: parseInt(row[0], 10),
-    recipient: row[1],
-    messageBody: row[2],
-    channel: row[3],
-    status: row[4],
-    timestamp: new Date(row[5]),
-    campaignId: parseInt(row[6], 10),
-    customerId: parseInt(row[7], 10),
-    externalMessageId: row[8] || null,
-    updatedAt: new Date(row[9])
-  }));
+  const now = new Date();
+  return rows.slice(1).map(row => {
+    const id = parseInt(row[0], 10);
+    const recipient = row[1];
+    const messageBody = row[2];
+    const channel = row[3];
+    const savedStatus = row[4];
+    const timestamp = new Date(row[5]);
+    const campaignId = parseInt(row[6], 10);
+    const customerId = parseInt(row[7], 10);
+    const externalMessageId = row[8] || null;
+    const updatedAt = new Date(row[9]);
+
+    const elapsedMs = now.getTime() - timestamp.getTime();
+    let status = savedStatus;
+
+    if (savedStatus !== 'PENDING') {
+      if (savedStatus === 'FAILED') {
+        if (elapsedMs < 150) status = 'PENDING';
+      } else {
+        if (elapsedMs < 150) {
+          status = 'PENDING';
+        } else if (elapsedMs < 350) {
+          status = 'SENT';
+        } else if (elapsedMs < 650) {
+          status = 'DELIVERED';
+        } else if (elapsedMs < 1050) {
+          const openStatus = (channel === 'WhatsApp' || channel === 'RCS') ? 'READ' : 'OPENED';
+          status = ['OPENED', 'READ', 'CLICKED', 'CONVERTED'].includes(savedStatus) ? openStatus : savedStatus;
+        } else if (elapsedMs < 1550) {
+          status = ['CLICKED', 'CONVERTED'].includes(savedStatus) ? 'CLICKED' : savedStatus;
+        }
+      }
+    }
+
+    return {
+      id,
+      recipient,
+      messageBody,
+      channel,
+      status,
+      timestamp,
+      campaignId,
+      customerId,
+      externalMessageId,
+      updatedAt
+    };
+  });
 }
 
 async function writeLogs(logs: CommunicationLog[]): Promise<void> {
@@ -491,4 +546,71 @@ export async function findCampaigns(options?: { orderBy?: { createdAt?: 'asc' | 
     campaigns.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }
   return campaigns;
+}
+
+export async function seedFromTemplates(): Promise<void> {
+  await init();
+  fs.writeFileSync(CAMPAIGNS_FILE, 'id,name,aiPrompt,goal,segmentDefinition,status,createdAt\n', 'utf-8');
+  fs.writeFileSync(LOGS_FILE, 'id,recipient,messageBody,channel,status,timestamp,campaignId,customerId,externalMessageId,updatedAt\n', 'utf-8');
+
+  const srcCustomers = path.join(process.cwd(), 'data/customers.csv');
+  const srcOrders = path.join(process.cwd(), 'data/orders.csv');
+
+  if (fs.existsSync(srcCustomers)) {
+    fs.copyFileSync(srcCustomers, CUSTOMERS_FILE);
+  }
+  if (fs.existsSync(srcOrders)) {
+    fs.copyFileSync(srcOrders, ORDERS_FILE);
+  }
+}
+
+export async function createCommunicationLogs(logsData: {
+  recipient: string;
+  messageBody: string;
+  channel: string;
+  status: string;
+  campaignId: number;
+  customerId: number;
+}[]): Promise<CommunicationLog[]> {
+  const logs = await readLogs();
+  let nextId = logs.reduce((max, l) => Math.max(max, l.id), 0) + 1;
+
+  const newLogs: CommunicationLog[] = logsData.map(data => ({
+    id: nextId++,
+    recipient: data.recipient,
+    messageBody: data.messageBody,
+    channel: data.channel,
+    status: data.status,
+    timestamp: new Date(),
+    campaignId: data.campaignId,
+    customerId: data.customerId,
+    externalMessageId: `ext_${Math.random().toString(36).substring(2, 11)}`,
+    updatedAt: new Date()
+  }));
+
+  logs.push(...newLogs);
+  await writeLogs(logs);
+  return newLogs;
+}
+
+export async function createOrders(ordersData: {
+  customerId: number;
+  amount: number;
+  itemPurchased: string;
+  purchasedAt: Date;
+}[]): Promise<Order[]> {
+  const orders = await readOrders();
+  let nextId = orders.reduce((max, o) => Math.max(max, o.id), 0) + 1;
+
+  const newOrders: Order[] = ordersData.map(data => ({
+    id: nextId++,
+    customerId: data.customerId,
+    amount: data.amount,
+    itemPurchased: data.itemPurchased,
+    purchasedAt: data.purchasedAt
+  }));
+
+  orders.push(...newOrders);
+  await writeOrders(orders);
+  return newOrders;
 }
