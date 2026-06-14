@@ -255,11 +255,13 @@ router.post('/campaigns/:id/send', async (req: Request, res: Response) => {
       }));
 
     // 3. Perform batch database writes in a single disk operation each!
+    let createdLogs: any[] = [];
     if (finalLogs.length > 0) {
-      await csvDb.createCommunicationLogs(finalLogs);
+      createdLogs = await csvDb.createCommunicationLogs(finalLogs);
     }
+    let createdOrders: any[] = [];
     if (finalOrders.length > 0) {
-      await csvDb.createOrders(finalOrders);
+      createdOrders = await csvDb.createOrders(finalOrders);
     }
 
     // 4. Trigger fire-and-forget dispatches (optional fallback)
@@ -277,7 +279,9 @@ router.post('/campaigns/:id/send', async (req: Request, res: Response) => {
 
     res.status(200).json({
       message: `Successfully queued and dispatched campaign to ${matchedCustomers.length} recipients`,
-      recipientCount: matchedCustomers.length
+      recipientCount: matchedCustomers.length,
+      logs: createdLogs,
+      orders: createdOrders
     });
   } catch (error: any) {
     console.error('[CRM Send Campaign Error]:', error);
@@ -482,6 +486,22 @@ router.get('/campaigns', async (req: Request, res: Response) => {
     res.json({ campaigns });
   } catch (error: any) {
     console.error('[CRM Get Campaigns Error]:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * 8. POST /api/campaigns/sync
+ * Sync client-side campaigns, logs, and orders to the serverless container /tmp DB.
+ */
+router.post('/campaigns/sync', async (req: Request, res: Response) => {
+  const { campaigns = [], logs = [], orders = [] } = req.body;
+  try {
+    console.log(`[CRM Sync] Synchronizing ${campaigns.length} campaigns, ${logs.length} logs, and ${orders.length} orders...`);
+    await csvDb.syncCampaignsLogsAndOrders(campaigns, logs, orders);
+    res.status(200).json({ success: true, message: 'Synchronization successful' });
+  } catch (error: any) {
+    console.error('[CRM Sync Error]:', error);
     res.status(500).json({ error: error.message });
   }
 });

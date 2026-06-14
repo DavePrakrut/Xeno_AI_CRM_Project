@@ -88,10 +88,40 @@ const modalConversionsFeed = document.getElementById('modal-conversions-feed');
 // Suggestions
 const suggestions = document.querySelectorAll('.suggestion-tag');
 
+// Helper to sync local storage data to backend/tmp
+async function syncLocalDataToServer() {
+  const localCamps = JSON.parse(localStorage.getItem('crm_campaigns') || '[]');
+  const localLogs = JSON.parse(localStorage.getItem('crm_logs') || '[]');
+  const localOrders = JSON.parse(localStorage.getItem('crm_orders') || '[]');
+
+  if (localCamps.length === 0) return;
+
+  try {
+    const response = await fetch(`${CRM_API_URL}/campaigns/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaigns: localCamps,
+        logs: localLogs,
+        orders: localOrders
+      })
+    });
+    const data = await response.json();
+    if (data.error) {
+      console.error('[Sync Error] Failed to sync data to server:', data.error);
+    } else {
+      console.log('[Sync Success] Local state synchronized to serverless container.');
+    }
+  } catch (err) {
+    console.error('[Sync Exception] Failed to reach sync endpoint:', err);
+  }
+}
+
 // App Initialization
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   setupTabListeners();
   setupEventListeners();
+  await syncLocalDataToServer();
   loadDashboardData();
   setupLogStream();
 });
@@ -99,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // 1. Tab Event Listeners
 function setupTabListeners() {
   tabs.forEach(tab => {
-    tab.addEventListener('click', (e) => {
+    tab.addEventListener('click', async (e) => {
       e.preventDefault();
       const targetTab = tab.getAttribute('data-tab');
       
@@ -117,12 +147,14 @@ function setupTabListeners() {
 
       // Fetch fresh data based on view
       if (targetTab === 'campaigns') {
+        await syncLocalDataToServer();
         loadCampaignHistory();
       } else if (targetTab === 'shoppers') {
         loadShoppers();
       } else if (targetTab === 'logs') {
         loadOutboxLogs();
       } else if (targetTab === 'dashboard') {
+        await syncLocalDataToServer();
         loadDashboardData();
       }
     });
@@ -140,6 +172,11 @@ function setupEventListeners() {
       const response = await fetch(`${CRM_API_URL}/data/ingest`, { method: 'POST' });
       const data = await response.json();
       
+      // Clear localStorage cache to prevent old campaigns from syncing back to the seeded database
+      localStorage.removeItem('crm_campaigns');
+      localStorage.removeItem('crm_logs');
+      localStorage.removeItem('crm_orders');
+
       alert(`Seeding successful!\nIngested ${data.customersIngested} customers and ${data.ordersIngested} orders.`);
       loadDashboardData();
       appendConsoleLine(`Database successfully seeded with ${data.customersIngested} shoppers.`, 'info');
@@ -184,6 +221,15 @@ function setupEventListeners() {
       }
 
       parsedCampaignCache = data;
+
+      // Save campaign to localStorage
+      if (data.campaign) {
+        const localCamps = JSON.parse(localStorage.getItem('crm_campaigns') || '[]');
+        if (!localCamps.some(c => c.id === data.campaign.id)) {
+          localCamps.push(data.campaign);
+          localStorage.setItem('crm_campaigns', JSON.stringify(localCamps));
+        }
+      }
       
       // Populate results card
       parsedNameInput.value = data.campaign.name;
@@ -245,6 +291,20 @@ function setupEventListeners() {
 
       if (data.error) {
         throw new Error(data.error);
+      }
+
+      // Save returned logs and orders to localStorage
+      if (data.logs && data.logs.length > 0) {
+        const localLogs = JSON.parse(localStorage.getItem('crm_logs') || '[]');
+        const newLogs = data.logs.filter(nl => !localLogs.some(ol => ol.campaignId === nl.campaignId && ol.customerId === nl.customerId));
+        localLogs.push(...newLogs);
+        localStorage.setItem('crm_logs', JSON.stringify(localLogs));
+      }
+      if (data.orders && data.orders.length > 0) {
+        const localOrders = JSON.parse(localStorage.getItem('crm_orders') || '[]');
+        const newOrders = data.orders.filter(no => !localOrders.some(oo => oo.customerId === no.customerId && oo.amount === no.amount && oo.itemPurchased === no.itemPurchased && oo.purchasedAt === no.purchasedAt));
+        localOrders.push(...newOrders);
+        localStorage.setItem('crm_orders', JSON.stringify(localOrders));
       }
 
       // Hide creator results card & clean input
@@ -463,8 +523,27 @@ function startInsightsPolling(campaignId) {
     try {
       const response = await fetch(`${CRM_API_URL}/campaigns/${campaignId}/insights`);
       const data = await response.json();
+
+      if (data.error || !data.campaign) {
+        console.warn(`[Polling warning] Campaign data missing on server. Restoring from client cache...`);
+        await syncLocalDataToServer();
+        return;
+      }
       
       const { campaign, funnel, rates, conversions } = data;
+
+      // Update campaign status in localStorage
+      if (campaign) {
+        const localCamps = JSON.parse(localStorage.getItem('crm_campaigns') || '[]');
+        const idx = localCamps.findIndex(c => c.id === campaign.id);
+        if (idx !== -1) {
+          localCamps[idx].status = campaign.status;
+          localStorage.setItem('crm_campaigns', JSON.stringify(localCamps));
+        } else {
+          localCamps.push(campaign);
+          localStorage.setItem('crm_campaigns', JSON.stringify(localCamps));
+        }
+      }
       
       // Update stats numbers
       metricSent.innerText = funnel.sent;

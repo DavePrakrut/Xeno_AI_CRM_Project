@@ -192,21 +192,24 @@ async function writeCustomers(customers: Customer[]): Promise<void> {
   fs.writeFileSync(CUSTOMERS_FILE, csvContent, 'utf-8');
 }
 
-async function readOrders(): Promise<Order[]> {
+async function readRawOrders(): Promise<Order[]> {
   await init();
   const content = fs.readFileSync(ORDERS_FILE, 'utf-8');
   const rows = parseCSV(content);
   if (rows.length <= 1) return [];
+  return rows.slice(1).map(row => ({
+    id: parseInt(row[0], 10),
+    customerId: parseInt(row[1], 10),
+    amount: parseFloat(row[2]),
+    itemPurchased: row[3],
+    purchasedAt: new Date(row[4])
+  }));
+}
+
+async function readOrders(): Promise<Order[]> {
+  const orders = await readRawOrders();
   const now = Date.now();
-  return rows.slice(1)
-    .map(row => ({
-      id: parseInt(row[0], 10),
-      customerId: parseInt(row[1], 10),
-      amount: parseFloat(row[2]),
-      itemPurchased: row[3],
-      purchasedAt: new Date(row[4])
-    }))
-    .filter(o => o.purchasedAt.getTime() <= now);
+  return orders.filter(o => o.purchasedAt.getTime() <= now);
 }
 
 async function writeOrders(orders: Order[]): Promise<void> {
@@ -382,7 +385,7 @@ export async function createCustomer(data: { name: string; email: string; phone:
 }
 
 export async function createOrder(data: { customerId: number; amount: number; itemPurchased: string; purchasedAt: Date }): Promise<Order> {
-  const orders = await readOrders();
+  const orders = await readRawOrders();
   const nextId = orders.reduce((max, o) => Math.max(max, o.id), 0) + 1;
   const newOrder: Order = {
     id: nextId,
@@ -599,7 +602,7 @@ export async function createOrders(ordersData: {
   itemPurchased: string;
   purchasedAt: Date;
 }[]): Promise<Order[]> {
-  const orders = await readOrders();
+  const orders = await readRawOrders();
   let nextId = orders.reduce((max, o) => Math.max(max, o.id), 0) + 1;
 
   const newOrders: Order[] = ordersData.map(data => ({
@@ -613,4 +616,94 @@ export async function createOrders(ordersData: {
   orders.push(...newOrders);
   await writeOrders(orders);
   return newOrders;
+}
+
+export async function syncCampaignsLogsAndOrders(
+  clientCampaigns: any[],
+  clientLogs: any[],
+  clientOrders: any[]
+): Promise<void> {
+  // 1. Sync Campaigns
+  if (clientCampaigns && clientCampaigns.length > 0) {
+    const existingCampaigns = await readCampaigns();
+    const existingCampaignIds = new Set(existingCampaigns.map(c => c.id));
+    
+    let campaignsUpdated = false;
+    for (const cc of clientCampaigns) {
+      if (!existingCampaignIds.has(cc.id)) {
+        existingCampaigns.push({
+          id: cc.id,
+          name: cc.name,
+          aiPrompt: cc.aiPrompt,
+          goal: cc.goal,
+          segmentDefinition: cc.segmentDefinition,
+          status: cc.status,
+          createdAt: new Date(cc.createdAt)
+        });
+        existingCampaignIds.add(cc.id);
+        campaignsUpdated = true;
+      }
+    }
+    if (campaignsUpdated) {
+      await writeCampaigns(existingCampaigns);
+    }
+  }
+
+  // 2. Sync Logs
+  if (clientLogs && clientLogs.length > 0) {
+    const existingLogs = await readLogs();
+    const existingLogKeys = new Set(existingLogs.map(l => `${l.campaignId}_${l.customerId}`));
+    
+    let logsUpdated = false;
+    let nextLogId = existingLogs.reduce((max, l) => Math.max(max, l.id), 0) + 1;
+    for (const cl of clientLogs) {
+      const key = `${cl.campaignId}_${cl.customerId}`;
+      if (!existingLogKeys.has(key)) {
+        existingLogs.push({
+          id: cl.id || nextLogId++,
+          recipient: cl.recipient,
+          messageBody: cl.messageBody,
+          channel: cl.channel,
+          status: cl.status,
+          timestamp: new Date(cl.timestamp || cl.updatedAt || Date.now()),
+          campaignId: cl.campaignId,
+          customerId: cl.customerId,
+          externalMessageId: cl.externalMessageId || null,
+          updatedAt: new Date(cl.updatedAt || Date.now())
+        });
+        existingLogKeys.add(key);
+        logsUpdated = true;
+      }
+    }
+    if (logsUpdated) {
+      await writeLogs(existingLogs);
+    }
+  }
+
+  // 3. Sync Orders
+  if (clientOrders && clientOrders.length > 0) {
+    const existingOrders = await readRawOrders();
+    const existingOrderKeys = new Set(existingOrders.map(o => `${o.customerId}_${o.amount}_${o.itemPurchased}_${new Date(o.purchasedAt).getTime()}`));
+    
+    let ordersUpdated = false;
+    let nextOrderId = existingOrders.reduce((max, o) => Math.max(max, o.id), 0) + 1;
+    for (const co of clientOrders) {
+      const pDate = new Date(co.purchasedAt);
+      const key = `${co.customerId}_${co.amount}_${co.itemPurchased}_${pDate.getTime()}`;
+      if (!existingOrderKeys.has(key)) {
+        existingOrders.push({
+          id: co.id || nextOrderId++,
+          customerId: co.customerId,
+          amount: parseFloat(co.amount),
+          itemPurchased: co.itemPurchased,
+          purchasedAt: pDate
+        });
+        existingOrderKeys.add(key);
+        ordersUpdated = true;
+      }
+    }
+    if (ordersUpdated) {
+      await writeOrders(existingOrders);
+    }
+  }
 }
