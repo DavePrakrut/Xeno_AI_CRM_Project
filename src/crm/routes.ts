@@ -38,57 +38,129 @@ router.post('/data/ingest', async (req: Request, res: Response) => {
     // Seed Customers
     const customersData = [
       {
-        name: 'Alice Johnson',
-        email: 'alice@example.com',
-        phone: '+15550101',
-        metadata: JSON.stringify({ tier: 'Gold', location: 'New York', age: 29 }),
+        name: 'Sarah Jenkins',
+        email: 'sarah.j@example.com',
+        phone: '+15550201',
+        metadata: JSON.stringify({ tier: 'Gold', location: 'London', age: 32 }),
         orders: {
           create: [
-            { amount: 120.00, itemPurchased: 'Running Shoes', purchasedAt: daysAgo(45) }
+            { amount: 180.00, itemPurchased: 'Premium Leather Boots', purchasedAt: daysAgo(12) },
+            { amount: 240.00, itemPurchased: 'Wool Trench Coat', purchasedAt: daysAgo(45) }
           ]
         }
       },
       {
-        name: 'Bob Smith',
-        email: 'bob@example.com',
-        phone: '+15550102',
-        metadata: JSON.stringify({ tier: 'Bronze', location: 'Chicago', age: 34 }),
+        name: 'Marcus Aurelius',
+        email: 'marcus@example.com',
+        phone: '+15550202',
+        metadata: JSON.stringify({ tier: 'Platinum', location: 'Rome', age: 45 }),
         orders: {
           create: [
-            { amount: 45.00, itemPurchased: 'Gym T-Shirt', purchasedAt: daysAgo(15) }
+            { amount: 350.00, itemPurchased: 'Espresso Machine', purchasedAt: daysAgo(90) },
+            { amount: 45.00, itemPurchased: 'Coffee Beans Blend', purchasedAt: daysAgo(5) }
           ]
         }
       },
       {
-        name: 'Charlie Davis',
-        email: 'charlie@example.com',
-        phone: '+15550103',
-        metadata: JSON.stringify({ tier: 'Platinum', location: 'San Francisco', age: 42 }),
+        name: 'Chloe Henderson',
+        email: 'chloe.h@example.com',
+        phone: '+15550203',
+        metadata: JSON.stringify({ tier: 'Silver', location: 'Paris', age: 26 }),
         orders: {
           create: [
-            { amount: 250.00, itemPurchased: 'Smart Watch', purchasedAt: daysAgo(75) }
+            { amount: 145.00, itemPurchased: 'Silk Summer Dress', purchasedAt: daysAgo(75) }
           ]
         }
       },
       {
-        name: 'Diana Prince',
-        email: 'diana@example.com',
-        phone: '+15550104',
-        metadata: JSON.stringify({ tier: 'Silver', location: 'Los Angeles', age: 28 }),
+        name: 'David Kim',
+        email: 'david.k@example.com',
+        phone: '+15550204',
+        metadata: JSON.stringify({ tier: 'Bronze', location: 'Seoul', age: 29 }),
         orders: {
           create: [
-            { amount: 85.00, itemPurchased: 'Floral Dress', purchasedAt: daysAgo(5) }
+            { amount: 95.00, itemPurchased: 'White Sneakers', purchasedAt: daysAgo(15) },
+            { amount: 35.00, itemPurchased: 'Cotton T-Shirt', purchasedAt: daysAgo(15) }
           ]
         }
       },
       {
-        name: 'Ethan Hunt',
-        email: 'ethan@example.com',
-        phone: '+15550105',
-        metadata: JSON.stringify({ tier: 'Gold', location: 'Miami', age: 38 }),
+        name: 'Aisha Rahman',
+        email: 'aisha.r@example.com',
+        phone: '+15550205',
+        metadata: JSON.stringify({ tier: 'Gold', location: 'Dubai', age: 31 }),
         orders: {
           create: [
-            { amount: 130.00, itemPurchased: 'Running Shoes', purchasedAt: daysAgo(90) }
+            { amount: 220.00, itemPurchased: 'Designer Sunglasses', purchasedAt: daysAgo(80) },
+            { amount: 130.00, itemPurchased: 'Perfume Oud', purchasedAt: daysAgo(3) }
+          ]
+        }
+      },
+      {
+        name: 'Liam O\'Connor',
+        email: 'liam.o@example.com',
+        phone: '+15550206',
+        metadata: JSON.stringify({ tier: 'Silver', location: 'Dublin', age: 35 }),
+        orders: {
+          create: [
+            { amount: 65.00, itemPurchased: 'Leather Wallet', purchasedAt: daysAgo(120) }
+          ]
+        }
+      },
+      {
+        name: 'Emma Watson',
+        email: 'emma.w@example.com',
+        phone: '+15550207',
+        metadata: JSON.stringify({ tier: 'Platinum', location: 'New York', age: 28 }),
+        orders: {
+          create: [
+            { amount: 450.00, itemPurchased: 'Diamond Ring', purchasedAt: daysAgo(65) },
+            { amount: 300.00, itemPurchased: 'Pearl Necklace', purchasedAt: daysAgo(2) }
+          ]
+        }
+      },
+      {
+        name: 'Carlos Santana',
+        email: 'carlos.s@example.com',
+        phone: '+15550208',
+        metadata: JSON.stringify({ tier: 'Bronze', location: 'Madrid', age: 50 }),
+        orders: {
+          create: [
+            { amount: 290.00, itemPurchased: 'Acoustic Guitar', purchasedAt: daysAgo(180) }
+          ]
+        }
+      },
+      {
+        name: 'Yuki Tanaka',
+        email: 'yuki.t@example.com',
+        phone: '+15550209',
+        metadata: JSON.stringify({ tier: 'Gold', location: 'Tokyo', age: 24 }),
+        orders: {
+          create: [
+            { amount: 110.00, itemPurchased: 'Oversized Hoodie', purchasedAt: daysAgo(8) },
+            { amount: 120.00, itemPurchased: 'Denim Jeans', purchasedAt: daysAgo(8) }
+          ]
+        }
+      },
+      {
+        name: 'Olivia Martinez',
+        email: 'olivia.m@example.com',
+        phone: '+15550210',
+        metadata: JSON.stringify({ tier: 'Bronze', location: 'Los Angeles', age: 33 }),
+        orders: {
+          create: [
+            { amount: 48.00, itemPurchased: 'Lipstick Trio', purchasedAt: daysAgo(25) }
+          ]
+        }
+      },
+      {
+        name: 'Alexander Carter',
+        email: 'alex.c@example.com',
+        phone: '+15550211',
+        metadata: JSON.stringify({ tier: 'Silver', location: 'Toronto', age: 40 }),
+        orders: {
+          create: [
+            { amount: 85.00, itemPurchased: 'Fleece Jacket', purchasedAt: daysAgo(60) }
           ]
         }
       },
@@ -96,9 +168,9 @@ router.post('/data/ingest', async (req: Request, res: Response) => {
         name: 'Fiona Gallagher',
         email: 'fiona@example.com',
         phone: '+15550106',
-        metadata: JSON.stringify({ tier: 'Bronze', location: 'Boston', age: 23 }),
+        metadata: JSON.stringify({ tier: 'Bronze', location: 'Chicago', age: 23 }),
         orders: {
-          create: [] // No orders yet
+          create: []
         }
       },
       {
@@ -120,6 +192,17 @@ router.post('/data/ingest', async (req: Request, res: Response) => {
         orders: {
           create: [
             { amount: 95.00, itemPurchased: 'Leather Bag', purchasedAt: daysAgo(62) }
+          ]
+        }
+      },
+      {
+        name: 'Alice Johnson',
+        email: 'alice@example.com',
+        phone: '+15550101',
+        metadata: JSON.stringify({ tier: 'Gold', location: 'New York', age: 29 }),
+        orders: {
+          create: [
+            { amount: 120.00, itemPurchased: 'Running Shoes', purchasedAt: daysAgo(45) }
           ]
         }
       }
