@@ -117,8 +117,35 @@ async function syncLocalDataToServer() {
   }
 }
 
+// Theme initialization helpers
+function initTheme() {
+  const savedTheme = localStorage.getItem('crm_theme') || 'light';
+  const isDark = savedTheme === 'dark';
+  if (isDark) {
+    document.body.classList.add('dark-mode');
+  } else {
+    document.body.classList.remove('dark-mode');
+  }
+  updateThemeIcon(isDark);
+}
+
+function updateThemeIcon(isDark) {
+  const themeToggle = document.getElementById('theme-toggle');
+  if (themeToggle) {
+    const icon = themeToggle.querySelector('i');
+    if (icon) {
+      if (isDark) {
+        icon.className = 'fa-solid fa-sun';
+      } else {
+        icon.className = 'fa-solid fa-moon';
+      }
+    }
+  }
+}
+
 // App Initialization
 document.addEventListener('DOMContentLoaded', async () => {
+  initTheme();
   setupTabListeners();
   setupEventListeners();
   await syncLocalDataToServer();
@@ -163,6 +190,16 @@ function setupTabListeners() {
 
 // 2. Setup Event Listeners
 function setupEventListeners() {
+  // Theme Toggle
+  const btnThemeToggle = document.getElementById('theme-toggle');
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      const isDark = document.body.classList.toggle('dark-mode');
+      localStorage.setItem('crm_theme', isDark ? 'dark' : 'light');
+      updateThemeIcon(isDark);
+    });
+  }
+
   // Database Seeding
   btnSeed.addEventListener('click', async () => {
     try {

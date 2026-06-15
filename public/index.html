@@ -21,8 +21,11 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="brand">
-        <div class="logo-icon">X</div>
-        <h2>Xeno <span>CRM</span></h2>
+        <div class="logo-circles">
+          <span class="logo-circle circle-left"></span>
+          <span class="logo-circle circle-right"></span>
+        </div>
+        <h2>Convertico <span>CRM</span></h2>
       </div>
       <nav class="nav-menu">
         <a href="#" class="nav-item active" data-tab="dashboard">
@@ -46,6 +49,14 @@
           <span class="pulse-dot"></span> CRM Server Online
         </div>
       </div>
+      <div class="sidebar-user">
+        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&h=100&q=80" alt="John Doe avatar" class="sidebar-avatar">
+        <div class="sidebar-user-info">
+          <span class="sidebar-user-name">John Doe</span>
+          <span class="sidebar-user-role">Admin</span>
+        </div>
+        <i class="fa-solid fa-chevron-down sidebar-user-chevron"></i>
+      </div>
     </aside>
 
     <!-- Main Content Area -->
@@ -54,18 +65,14 @@
       <!-- Top Bar -->
       <header class="top-bar">
         <div class="search-bar">
-          <i class="fa-solid fa-hashtag"></i>
+          <i class="fa-solid fa-wand-magic-sparkles text-accent"></i>
           <span>AI-Native Target Outreach Platform</span>
         </div>
-        <div class="user-profile">
-          <div class="api-status">
-            <span class="badge" id="ai-mode-badge"><i class="fa-solid fa-robot"></i> Mock AI Mode</span>
-          </div>
-          <div class="profile-info">
-            <span class="user-name">Brand Marketer</span>
-            <span class="user-role">Administrator</span>
-          </div>
-          <div class="avatar">BM</div>
+        <div class="top-bar-actions">
+          <span class="badge" id="ai-mode-badge"><i class="fa-solid fa-robot"></i> Mock AI Mode</span>
+          <button id="theme-toggle" class="btn-theme-toggle" title="Toggle Theme">
+            <i class="fa-solid fa-moon"></i>
+          </button>
         </div>
       </header>
 
