@@ -608,6 +608,7 @@ function startInsightsPolling(campaignId) {
       if (campaign.status === 'COMPLETED') {
         activeCampStatus.className = 'badge badge-completed';
         clearInterval(pollInterval);
+        await syncLocalDataToServer();
         loadDashboardData(); // Refresh tables and metrics on completion
         appendConsoleLine(`Campaign ID ${campaignId} successfully completed all dispatch status runs!`, 'attribution');
       }

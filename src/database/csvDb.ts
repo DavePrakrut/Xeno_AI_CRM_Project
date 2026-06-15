@@ -630,7 +630,8 @@ export async function syncCampaignsLogsAndOrders(
     
     let campaignsUpdated = false;
     for (const cc of clientCampaigns) {
-      if (!existingCampaignIds.has(cc.id)) {
+      const existingCampaign = existingCampaigns.find(c => c.id === cc.id);
+      if (!existingCampaign) {
         existingCampaigns.push({
           id: cc.id,
           name: cc.name,
@@ -641,6 +642,9 @@ export async function syncCampaignsLogsAndOrders(
           createdAt: new Date(cc.createdAt)
         });
         existingCampaignIds.add(cc.id);
+        campaignsUpdated = true;
+      } else if (existingCampaign.status !== cc.status) {
+        existingCampaign.status = cc.status;
         campaignsUpdated = true;
       }
     }
@@ -658,7 +662,8 @@ export async function syncCampaignsLogsAndOrders(
     let nextLogId = existingLogs.reduce((max, l) => Math.max(max, l.id), 0) + 1;
     for (const cl of clientLogs) {
       const key = `${cl.campaignId}_${cl.customerId}`;
-      if (!existingLogKeys.has(key)) {
+      const existingLog = existingLogs.find(l => `${l.campaignId}_${l.customerId}` === key);
+      if (!existingLog) {
         existingLogs.push({
           id: cl.id || nextLogId++,
           recipient: cl.recipient,
@@ -672,6 +677,10 @@ export async function syncCampaignsLogsAndOrders(
           updatedAt: new Date(cl.updatedAt || Date.now())
         });
         existingLogKeys.add(key);
+        logsUpdated = true;
+      } else if (existingLog.status !== cl.status) {
+        existingLog.status = cl.status;
+        existingLog.updatedAt = new Date(cl.updatedAt || Date.now());
         logsUpdated = true;
       }
     }
