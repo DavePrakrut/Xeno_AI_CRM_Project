@@ -946,7 +946,7 @@ textarea.form-control {
   font-family: var(--font-title);
   font-weight: 600;
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: #a1a1aa; /* Zinc 400 */
   display: flex;
   align-items: center;
   gap: 8px;
@@ -956,8 +956,8 @@ textarea.form-control {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--accent);
-  background-color: var(--accent-glow);
+  color: #3b82f6; /* Static light blue */
+  background-color: rgba(59, 130, 246, 0.15); /* Static blue glow */
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -969,20 +969,22 @@ textarea.form-control {
   font-size: 0.85rem;
   overflow-y: auto;
   line-height: 1.6;
+  color: #e4e4e7; /* Zinc 200 */
 }
 
 .console-line {
   margin-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.01);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   padding-bottom: 4px;
   word-break: break-all;
 }
 
-.console-line.dispatch { color: var(--blue); }
-.console-line.callback { color: var(--purple); }
-.console-line.attribution { color: var(--green); }
-.console-line.info { color: var(--text-secondary); }
-.console-line.error { color: var(--red); }
+.console-line.dispatch { color: #3b82f6; }
+.console-line.callback { color: #d946ef; }
+.console-line.attribution { color: #10b981; }
+.console-line.info { color: #a1a1aa; }
+.console-line.error { color: #ef4444; }
+.console-line.text-muted { color: #71717a; }
 
 /* Modal Styles */
 .modal-backdrop {
