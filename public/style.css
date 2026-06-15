@@ -465,6 +465,17 @@ body {
   border-color: rgba(255, 255, 255, 0.2);
 }
 
+.sidebar .btn-secondary {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.sidebar .btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
 .mt-3 { margin-top: 12px; }
 .mt-4 { margin-top: 20px; }
 
